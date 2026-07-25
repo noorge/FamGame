@@ -1,8 +1,8 @@
 @echo off
 cd /d "%~dp0"
-echo جارِ التحقق من وجود تحديثات...
+echo checking for updates...
 echo.
 git pull
 echo.
-echo تم! يمكنك إغلاق هذه النافذة الآن.
+echo done, you can close this window now.
 pause
