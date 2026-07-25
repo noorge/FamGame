@@ -46,7 +46,7 @@
     function renderFolderPickGate(isReauth, pendingHandle) {
         var msg = isReauth
             ? 'وجدت مجلد الألعاب السابق. اضغط لإعادة فتحه (مرة واحدة فقط في كل جلسة).'
-            : 'اختر المجلد الذي ستُحفظ فيه ألعابك (يُفضّل اختيار مجلد Hamood-g2).';
+            : 'اختر المجلد الذي ستُحفظ فيه ألعابك (يُفضّل اختيار مجلد Family Game).';
         var btn = Studio.util.el('button', { class: 'btn-primary btn-large', text: isReauth ? 'إعادة فتح مجلد الألعاب' : 'اختيار مجلد الألعاب' });
         btn.addEventListener('click', function () {
             var action = isReauth
