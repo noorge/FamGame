@@ -256,6 +256,15 @@
         var typeRow = Studio.util.el('div', { class: 'type-select-row' });
         var selectedType = 'text';
         var iconManuallySet = false;
+
+        var videoModeRow = Studio.util.el('div', { class: 'form-row hidden' });
+        var audioOnlyReveal = false;
+        var videoModeCheckbox = Studio.util.el('input', { type: 'checkbox', id: 'video-mode-checkbox' });
+        videoModeCheckbox.addEventListener('change', function () { audioOnlyReveal = videoModeCheckbox.checked; });
+        var videoModeLabel = Studio.util.el('label', { text: '🔇 صوت فقط أثناء السؤال، ثم زر لإظهار الفيديو', for: 'video-mode-checkbox' });
+        videoModeRow.appendChild(videoModeCheckbox);
+        videoModeRow.appendChild(videoModeLabel);
+
         Object.keys(TYPE_LABELS).forEach(function (type, idx) {
             var btn = Studio.util.el('button', { class: 'type-select-btn' + (idx === 0 ? ' selected' : ''), type: 'button', text: TYPE_ICONS_DEFAULT[type] + ' ' + TYPE_LABELS[type] });
             btn.addEventListener('click', function () {
@@ -266,10 +275,12 @@
                     selectedIcon = TYPE_ICONS_DEFAULT[type];
                     iconPickBtn.textContent = selectedIcon;
                 }
+                videoModeRow.classList.toggle('hidden', type !== 'video');
             });
             typeRow.appendChild(btn);
         });
         box.appendChild(typeRow);
+        box.appendChild(videoModeRow);
 
         var btnRow = Studio.util.el('div', { class: 'modal-btn-row' });
         var createBtn = Studio.util.el('button', { class: 'btn-primary', text: 'إضافة' });
@@ -288,6 +299,7 @@
                 name: name,
                 icon: selectedIcon,
                 type: selectedType,
+                audioOnlyReveal: selectedType === 'video' && audioOnlyReveal,
                 order: currentGame.categories.length
             });
             currentGame.categories.push(cat);
@@ -346,6 +358,20 @@
         titleRow.appendChild(nameInput);
         titleRow.appendChild(Studio.util.el('span', { class: 'type-badge', text: TYPE_ICONS_DEFAULT[category.type] + ' ' + TYPE_LABELS[category.type] }));
         wrap.appendChild(titleRow);
+
+        if (category.type === 'video') {
+            var videoModeRow = Studio.util.el('div', { class: 'form-row' });
+            var checkboxId = 'video-mode-' + category.id;
+            var videoModeCheckbox = Studio.util.el('input', { type: 'checkbox', id: checkboxId });
+            videoModeCheckbox.checked = !!category.audioOnlyReveal;
+            videoModeCheckbox.addEventListener('change', function () {
+                category.audioOnlyReveal = videoModeCheckbox.checked;
+                markDirty();
+            });
+            videoModeRow.appendChild(videoModeCheckbox);
+            videoModeRow.appendChild(Studio.util.el('label', { text: '🔇 صوت فقط أثناء السؤال، ثم زر لإظهار الفيديو', for: checkboxId }));
+            wrap.appendChild(videoModeRow);
+        }
 
         wrap.appendChild(buildQuestionTileGrid(category));
 
@@ -641,7 +667,7 @@
 
         Studio.questionRenderer.render(question, category.type, function (media) {
             return Studio.games.resolveMediaUrl(currentGame.id, media);
-        }).then(function (result) {
+        }, { audioOnlyReveal: category.audioOnlyReveal }).then(function (result) {
             body.appendChild(result.el);
             cleanupFn = result.cleanup;
         }).catch(function (err) {

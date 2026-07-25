@@ -3,7 +3,8 @@
 
     // The ONE implementation of trim-aware audio/video playback UI.
     // Used identically by the Editor's Preview modal and the real Play view.
-    function create(question, objectUrl) {
+    function create(question, objectUrl, opts) {
+        opts = opts || {};
         var media = question.media;
         var trimStart = media.trimStart || 0;
         var trimEnd = media.trimEnd != null ? media.trimEnd : null;
@@ -17,6 +18,9 @@
         if (isVideo) {
             mediaEl.className = 'media-player-video';
             mediaEl.playsInline = true;
+            // Audio still plays normally while hidden — hiding a media
+            // element doesn't pause it, so this is a pure visual toggle.
+            if (opts.hideVideoUntilRevealed) mediaEl.classList.add('video-hidden-audio-only');
         }
 
         var container = Studio.util.el('div', { class: 'audio-container' });
@@ -117,7 +121,11 @@
             mediaEl.src = '';
         }
 
-        return { el: container, play: play, pause: pause, destroy: destroy };
+        function revealVideo() {
+            mediaEl.classList.remove('video-hidden-audio-only');
+        }
+
+        return { el: container, play: play, pause: pause, destroy: destroy, revealVideo: revealVideo };
     }
 
     Studio.mediaPlayer = { create: create };

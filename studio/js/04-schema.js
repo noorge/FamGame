@@ -23,6 +23,9 @@
             name: opts.name || '',
             icon: opts.icon || '❓',
             type: opts.type || 'text',
+            // Only meaningful for type 'video': play audio-only during the
+            // question, reveal the picture with a button afterward.
+            audioOnlyReveal: !!opts.audioOnlyReveal,
             order: typeof opts.order === 'number' ? opts.order : 0,
             questions: []
         };

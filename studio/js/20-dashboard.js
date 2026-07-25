@@ -32,6 +32,17 @@
         refreshGrid();
     }
 
+    function pickNewFolder() {
+        return Studio.fs.pickRootDirectory().then(function (handle) {
+            return Studio.fs.ensureGamesRoot(handle).then(function (gamesRoot) {
+                Studio.state.rootHandle = handle;
+                Studio.state.gamesRoot = gamesRoot;
+                Studio.util.showToast('تم فتح المجلد.', 'success');
+                render({ needsFolderPick: false });
+            });
+        });
+    }
+
     function renderFolderPickGate(isReauth, pendingHandle) {
         var msg = isReauth
             ? 'وجدت مجلد الألعاب السابق. اضغط لإعادة فتحه (مرة واحدة فقط في كل جلسة).'
@@ -42,23 +53,35 @@
                 ? Studio.fs.requestPermission(pendingHandle).then(function (granted) {
                     if (!granted) throw new Error('لم يتم منح الإذن');
                     return pendingHandle;
+                }).then(function (handle) {
+                    return Studio.fs.ensureGamesRoot(handle).then(function (gamesRoot) {
+                        Studio.state.rootHandle = handle;
+                        Studio.state.gamesRoot = gamesRoot;
+                        render({ needsFolderPick: false });
+                    });
                 })
-                : Studio.fs.pickRootDirectory();
+                : pickNewFolder();
 
-            action.then(function (handle) {
-                return Studio.fs.ensureGamesRoot(handle).then(function (gamesRoot) {
-                    Studio.state.rootHandle = handle;
-                    Studio.state.gamesRoot = gamesRoot;
-                    render({ needsFolderPick: false });
-                });
-            }).catch(function (err) {
-                Studio.util.showToast('حدث خطأ: ' + err.message, 'error');
+            action.catch(function (err) {
+                Studio.util.showToast('تعذّر فتح هذا المجلد (ربما تم نقله أو حذفه). جرّب اختيار مجلد آخر بالأسفل.', 'error');
             });
         });
-        rootEl.appendChild(Studio.util.el('div', { class: 'folder-gate' }, [
+        var gateBox = Studio.util.el('div', { class: 'folder-gate' }, [
             Studio.util.el('p', { text: msg }),
             btn
-        ]));
+        ]);
+
+        if (isReauth) {
+            var pickInsteadBtn = Studio.util.el('button', { class: 'btn-secondary', text: 'أو اختر مجلداً آخر' });
+            pickInsteadBtn.addEventListener('click', function () {
+                pickNewFolder().catch(function (err) {
+                    Studio.util.showToast('تعذّر فتح المجلد: ' + err.message, 'error');
+                });
+            });
+            gateBox.appendChild(pickInsteadBtn);
+        }
+
+        rootEl.appendChild(gateBox);
     }
 
     function renderToolbar() {
@@ -83,6 +106,17 @@
         });
         toolbar.appendChild(importBtn);
 
+        // Always available — lets the user switch to a different folder, or
+        // recover if the previously-picked one was moved/deleted (e.g. a
+        // fresh clone on a new machine, or someone else's laptop).
+        var changeFolderBtn = Studio.util.el('button', { class: 'btn-secondary', text: '📁 تغيير المجلد' });
+        changeFolderBtn.addEventListener('click', function () {
+            pickNewFolder().catch(function (err) {
+                Studio.util.showToast('تعذّر فتح المجلد: ' + err.message, 'error');
+            });
+        });
+        toolbar.appendChild(changeFolderBtn);
+
         rootEl.appendChild(toolbar);
     }
 
@@ -99,6 +133,10 @@
             games.forEach(function (g) {
                 grid.appendChild(buildCard(g));
             });
+        }).catch(function (err) {
+            grid.innerHTML = '';
+            grid.appendChild(Studio.util.el('p', { class: 'empty-text', text: '⚠ تعذّر الوصول إلى هذا المجلد (ربما تم نقله أو حذفه). استخدم زر "تغيير المجلد" أعلاه لاختيار مجلد آخر.' }));
+            Studio.util.showToast('خطأ: ' + err.message, 'error');
         });
     }
 

@@ -390,7 +390,7 @@
         var myToken = renderToken;
         Studio.questionRenderer.render(question, category.type, function (media) {
             return Studio.games.resolveMediaUrl(state.game.id, media);
-        }).then(function (result) {
+        }, { audioOnlyReveal: category.audioOnlyReveal }).then(function (result) {
             if (myToken !== renderToken) {
                 // User navigated away before this resolved — discard instead of leaking.
                 result.cleanup();
