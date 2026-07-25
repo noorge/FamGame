@@ -3,13 +3,21 @@
 
     var MIN_RECT = 20;
 
-    function open(imageFile) {
+    // opts.mode: 'rect' resolves with normalized crop coordinates (0-1
+    // fractions of the image's natural size) instead of a re-encoded blob —
+    // same non-destructive idea as audio/video trim: keep the one original
+    // file, just remember which part of it to show. opts.initialRect seeds
+    // the crop box (used when re-cropping an already-cropped question).
+    // Default (no opts / mode !== 'rect') keeps the old blob behavior,
+    // still used for simple one-off crops like character avatars.
+    function open(imageFile, opts) {
+        opts = opts || {};
         return new Promise(function (resolve, reject) {
             var objectUrl = URL.createObjectURL(imageFile);
             var img = new Image();
 
             img.onload = function () {
-                buildModal(img, objectUrl, resolve, reject);
+                buildModal(img, objectUrl, opts, resolve, reject);
             };
             img.onerror = function () {
                 URL.revokeObjectURL(objectUrl);
@@ -19,7 +27,7 @@
         });
     }
 
-    function buildModal(img, objectUrl, resolve, reject) {
+    function buildModal(img, objectUrl, opts, resolve, reject) {
         var maxW = Math.min(window.innerWidth * 0.85, 900);
         var maxH = window.innerHeight * 0.6;
         var scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
@@ -48,7 +56,14 @@
         document.body.appendChild(overlay);
 
         var ctx = canvas.getContext('2d');
-        var rect = { x: dispW * 0.1, y: dispH * 0.1, w: dispW * 0.8, h: dispH * 0.8 };
+        var rect = opts.initialRect
+            ? {
+                x: opts.initialRect.x * dispW,
+                y: opts.initialRect.y * dispH,
+                w: opts.initialRect.width * dispW,
+                h: opts.initialRect.height * dispH
+            }
+            : { x: dispW * 0.1, y: dispH * 0.1, w: dispW * 0.8, h: dispH * 0.8 };
         var dragMode = null; // 'move' | 'nw' | 'ne' | 'sw' | 'se'
         var dragStart = null;
         var handleSize = 14;
@@ -177,6 +192,19 @@
             var sy = rect.y / scale;
             var sw = rect.w / scale;
             var sh = rect.h / scale;
+
+            if (opts.mode === 'rect') {
+                var cropRect = {
+                    x: sx / img.naturalWidth,
+                    y: sy / img.naturalHeight,
+                    width: sw / img.naturalWidth,
+                    height: sh / img.naturalHeight
+                };
+                cleanup();
+                resolve(cropRect);
+                return;
+            }
+
             var outCanvas = document.createElement('canvas');
             outCanvas.width = Math.round(sw);
             outCanvas.height = Math.round(sh);

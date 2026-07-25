@@ -257,9 +257,9 @@
         var selectedType = 'text';
         var iconManuallySet = false;
 
-        var videoModeRow = Studio.util.el('div', { class: 'form-row hidden' });
+        var videoModeRow = Studio.util.el('div', { class: 'pixel-checkbox-row hidden' });
         var audioOnlyReveal = false;
-        var videoModeCheckbox = Studio.util.el('input', { type: 'checkbox', id: 'video-mode-checkbox' });
+        var videoModeCheckbox = Studio.util.el('input', { type: 'checkbox', class: 'pixel-checkbox', id: 'video-mode-checkbox' });
         videoModeCheckbox.addEventListener('change', function () { audioOnlyReveal = videoModeCheckbox.checked; });
         var videoModeLabel = Studio.util.el('label', { text: '🔇 صوت فقط أثناء السؤال، ثم زر لإظهار الفيديو', for: 'video-mode-checkbox' });
         videoModeRow.appendChild(videoModeCheckbox);
@@ -360,9 +360,9 @@
         wrap.appendChild(titleRow);
 
         if (category.type === 'video') {
-            var videoModeRow = Studio.util.el('div', { class: 'form-row' });
+            var videoModeRow = Studio.util.el('div', { class: 'pixel-checkbox-row' });
             var checkboxId = 'video-mode-' + category.id;
-            var videoModeCheckbox = Studio.util.el('input', { type: 'checkbox', id: checkboxId });
+            var videoModeCheckbox = Studio.util.el('input', { type: 'checkbox', class: 'pixel-checkbox', id: checkboxId });
             videoModeCheckbox.checked = !!category.audioOnlyReveal;
             videoModeCheckbox.addEventListener('change', function () {
                 category.audioOnlyReveal = videoModeCheckbox.checked;
@@ -536,24 +536,22 @@
     }
 
     function handleImageUpload(category, question, file, onChange) {
-        Studio.cropTool.open(file).then(function (blob) {
+        // Non-destructive, same idea as audio/video trim: keep the ONE
+        // original file on disk and just remember which part of it to show
+        // (as normalized coordinates), instead of saving a separately
+        // re-encoded cropped copy. "Show full image" just means rendering
+        // without the crop window — no second file needed.
+        Studio.cropTool.open(file, { mode: 'rect' }).then(function (cropRect) {
             return Studio.games.getMediaDir(currentGame.id, 'images').then(function (dir) {
-                var filename = question.id + '.jpg';
-                // Keep the original uncropped upload too (under its own name),
-                // so the full, un-cropped picture can be revealed after the
-                // question — e.g. a cropped "who is this?" mystery photo
-                // followed by the full photo once they've answered.
-                var fullExt = getExt(file.name) || 'jpg';
-                var fullFilename = question.id + '-full.' + fullExt;
-                return Promise.all([
-                    Studio.fs.writeBinary(dir, filename, blob),
-                    Studio.fs.writeBinary(dir, fullFilename, file)
-                ]).then(function () {
+                var ext = getExt(file.name) || 'jpg';
+                var filename = question.id + '.' + ext;
+                return Studio.fs.writeBinary(dir, filename, file).then(function () {
                     question.media = {
                         kind: 'image',
                         file: 'media/images/' + filename,
-                        fullFile: 'media/images/' + fullFilename,
-                        originalName: file.name
+                        crop: cropRect,
+                        originalName: file.name,
+                        sizeBytes: file.size
                     };
                     markDirty();
                     onChange();
@@ -566,23 +564,16 @@
 
     function handleRecrop(category, question, onChange) {
         var media = question.media;
-        // Re-crop from the saved original (not the already-cropped file) so
-        // re-cropping never loses context/quality. Older questions saved
-        // before this existed fall back to the cropped file itself.
-        var sourceFilename = Studio.games.basename(media.fullFile || media.file);
         Studio.games.getMediaDir(currentGame.id, 'images').then(function (dir) {
-            return Studio.fs.readBinaryAsBlob(dir, sourceFilename);
+            return Studio.fs.readBinaryAsBlob(dir, Studio.games.basename(media.file));
         }).then(function (blob) {
-            return Studio.cropTool.open(blob);
-        }).then(function (newBlob) {
-            return Studio.games.getMediaDir(currentGame.id, 'images').then(function (dir) {
-                var filename = Studio.games.basename(media.file);
-                return Studio.fs.writeBinary(dir, filename, newBlob).then(function () {
-                    markDirty();
-                    Studio.util.showToast('تم تحديث القص.', 'success');
-                    onChange();
-                });
-            });
+            return Studio.cropTool.open(blob, { mode: 'rect', initialRect: media.crop });
+        }).then(function (newRect) {
+            // Just a metadata update — the original file never changes.
+            media.crop = newRect;
+            markDirty();
+            Studio.util.showToast('تم تحديث القص.', 'success');
+            onChange();
         }).catch(function (err) {
             if (err.message !== 'cancelled') Studio.util.showToast('فشل إعادة القص: ' + err.message, 'error');
         });
