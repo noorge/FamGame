@@ -44,8 +44,10 @@
 
         var btnRow = Studio.util.el('div', { class: 'modal-btn-row' });
         var applyBtn = Studio.util.el('button', { class: 'btn-primary', text: 'تطبيق القص' });
+        var fullBtn = Studio.util.el('button', { class: 'btn-secondary', text: 'استخدام الصورة كاملة' });
         var cancelBtn = Studio.util.el('button', { class: 'btn-secondary', text: 'إلغاء' });
         btnRow.appendChild(applyBtn);
+        btnRow.appendChild(fullBtn);
         btnRow.appendChild(cancelBtn);
 
         box.appendChild(title);
@@ -187,11 +189,11 @@
             URL.revokeObjectURL(objectUrl);
         }
 
-        applyBtn.addEventListener('click', function () {
-            var sx = rect.x / scale;
-            var sy = rect.y / scale;
-            var sw = rect.w / scale;
-            var sh = rect.h / scale;
+        function applyRect(r) {
+            var sx = r.x / scale;
+            var sy = r.y / scale;
+            var sw = r.w / scale;
+            var sh = r.h / scale;
 
             if (opts.mode === 'rect') {
                 var cropRect = {
@@ -214,6 +216,12 @@
                 cleanup();
                 resolve(blob);
             }, 'image/jpeg', 0.9);
+        }
+
+        applyBtn.addEventListener('click', function () { applyRect(rect); });
+
+        fullBtn.addEventListener('click', function () {
+            applyRect({ x: 0, y: 0, w: dispW, h: dispH });
         });
 
         cancelBtn.addEventListener('click', function () {

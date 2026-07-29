@@ -118,6 +118,7 @@
 
 /* Crop tool */
 .crop-modal-box, .trim-modal-box { text-align: center; }
+.crop-modal-box .modal-btn-row, .trim-modal-box .modal-btn-row { justify-content: center; }
 .crop-canvas-wrap { margin: 0 auto; position: relative; border: 3px solid #fff; }
 .crop-canvas-wrap canvas { display: block; cursor: crosshair; max-width: 100%; }
 
