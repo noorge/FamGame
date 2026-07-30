@@ -373,6 +373,18 @@
             wrap.appendChild(videoModeRow);
         }
 
+        var gridToolbar = Studio.util.el('div', { class: 'question-grid-toolbar' });
+        var shuffleBtn = Studio.util.el('button', { class: 'btn-secondary', type: 'button', text: '🔀 ترتيب عشوائي' });
+        shuffleBtn.addEventListener('click', function () {
+            if (category.questions.length < 2) return;
+            Studio.util.shuffle(category.questions);
+            category.questions.forEach(function (q, idx) { q.order = idx; });
+            markDirty();
+            render();
+        });
+        gridToolbar.appendChild(shuffleBtn);
+        wrap.appendChild(gridToolbar);
+
         wrap.appendChild(buildQuestionTileGrid(category));
 
         return wrap;

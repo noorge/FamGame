@@ -167,6 +167,15 @@
         return rows;
     }
 
+    // Fisher-Yates, in place.
+    function shuffle(arr) {
+        for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+        }
+        return arr;
+    }
+
     Studio.util = {
         uuid: uuid,
         shortId: shortId,
@@ -182,6 +191,7 @@
         bindTrimEnforcement: bindTrimEnforcement,
         computeBalancedColumns: computeBalancedColumns,
         chunk: chunk,
-        parseTime: parseTime
+        parseTime: parseTime,
+        shuffle: shuffle
     };
 })(window.Studio);

@@ -101,6 +101,8 @@
 .category-detail-title-row .category-name-input { flex: 1; min-width: 140px; font-weight: 700; font-size: 1.2rem; }
 .category-detail .btn-secondary:first-child { margin-bottom: 6px; }
 
+.question-grid-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+
 .step-back-btn { display: block; margin: 0 auto 16px; }
 .step-next-btn { display: block; margin: 24px auto 0; }
 
